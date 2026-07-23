@@ -10,11 +10,13 @@ export function resolveIssueSubcategory(draft, issue, subcategory) {
 export function collectDraftIssues(draft) {
   const selectedIssues = Object.entries(draft.issues || {})
     .flatMap(([issue, subcategories]) =>
-      Object.entries(subcategories || {}).map(([subcategory, description]) => ({
-        issue,
-        subcategory: resolveIssueSubcategory(draft, issue, subcategory),
-        description,
-      })),
+      Object.entries(subcategories || {}).flatMap(([subcategory, description]) =>
+        (Array.isArray(description) ? description : [description]).map((text) => ({
+          issue,
+          subcategory: resolveIssueSubcategory(draft, issue, subcategory),
+          description: text,
+        })),
+      ),
     )
     .filter(({ subcategory }) => subcategory);
 
@@ -51,7 +53,7 @@ export function buildTabSeparatedText(entries) {
   const rows = entries.map((entry) => [
     entry.building,
     entry.roomNumber,
-    entry.roomType || "Dorm",
+    entry.roomType || "Lounge",
     formatIssuePairs(entry),
     formatIssueNotes(entry),
     formatPartnerSummary(entry),
@@ -63,8 +65,9 @@ export function safeFilenamePart(value) {
   return String(value).trim().replace(/[^a-z0-9_-]+/gi, "_").replace(/^_+|_+$/g, "") || "unknown";
 }
 
-export function photoFilename(building, room, index) {
-  return `${safeFilenamePart(building)}_${safeFilenamePart(room)}_${index + 1}.jpg`;
+export function photoFilename(building, inspectedSpace, room, index) {
+  const roomPart = room && room !== "N/A" ? `_${safeFilenamePart(room)}` : "";
+  return `${safeFilenamePart(building)}_${safeFilenamePart(inspectedSpace)}${roomPart}_${index + 1}.jpg`;
 }
 
 export function csvCell(value) {
@@ -74,7 +77,7 @@ export function csvCell(value) {
 export function buildCsvText(entries) {
   const rows = [["Building Name", "Room Number", "Room Type", "Categories and Subcategories", "Additional Notes", "Partner Summary"]];
   entries.forEach((entry) => {
-    rows.push([entry.building, entry.roomNumber, entry.roomType || "Dorm", formatIssuePairs(entry), formatIssueNotes(entry), formatPartnerSummary(entry)]);
+    rows.push([entry.building, entry.roomNumber, entry.roomType || "Lounge", formatIssuePairs(entry), formatIssueNotes(entry), formatPartnerSummary(entry)]);
   });
   return rows.map((row) => row.map(csvCell).join(",")).join("\r\n");
 }
