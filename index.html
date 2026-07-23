@@ -4,15 +4,15 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta name="theme-color" content="#f36e21" />
-    <title>RIT Room Checks</title>
+    <title>RIT Community Walkthroughs</title>
     <link rel="manifest" href="manifest.webmanifest" />
     <link rel="stylesheet" href="styles.css" />
   </head>
   <body>
     <header class="app-header">
       <div>
-        <p class="eyebrow">RIT CRL Summer Room Checks</p>
-        <h1>Room Check Documentation</h1>
+        <p class="eyebrow">RIT RC Community Walkthroughs</p>
+        <h1>Community Walkthrough Form</h1>
       </div>
       <button id="installButton" class="ghost-button" hidden>Install</button>
     </header>
@@ -22,46 +22,39 @@
         <div>
           <h2 id="start-heading">Start a room entry</h2>
           <p>
-            Pick a residence hall, enter the room, select every issue observed, add details and photos,
+            Pick a community and building, document the inspected space, select every issue observed, add details and photos,
             then save. Your entries are stored on this device until you export or clear them.
           </p>
         </div>
 
         <form id="roomForm" class="room-form">
+          <label for="communitySelect">Community</label>
+          <select id="communitySelect" name="community" required></select>
+
           <label for="buildingSelect">Building</label>
-          <select id="buildingSelect" name="building" required>
-            <option value="Baker A">Baker A</option>
-            <option value="Baker B">Baker B</option>
-            <option value="Colby A">Colby A</option>
-            <option value="Colby B">Colby B</option>
-            <option value="Colby C">Colby C</option>
-            <option value="DSP">DSP</option>
-            <option value="Ellingson">Ellingson</option>
-            <option value="Fish A">Fish A</option>
-            <option value="Fish B">Fish B</option>
-            <option value="Fish C">Fish C</option>
-            <option value="Gleason">Gleason</option>
-            <option value="Gibson A">Gibson A</option>
-            <option value="Gibson B">Gibson B</option>
-            <option value="Peterson">Peterson</option>
-            <option value="Res Hall A">Res Hall A</option>
-            <option value="Res Hall B">Res Hall B</option>
-            <option value="Res Hall C">Res Hall C</option>
-            <option value="Sol Huemann">Sol Huemann</option>
-          </select>
+          <select id="buildingSelect" name="building" required></select>
 
-          <label for="roomNumber">Room number</label>
-          <input id="roomNumber" name="roomNumber" type="text" inputmode="numeric" pattern="[0-9]*" autocomplete="off" placeholder="Example: 4020, 6067, 11009" required />
-
-          <label for="roomType">Room type</label>
+          <label for="roomType">Inspected space</label>
           <select id="roomType" name="roomType" required>
-            <option value="Dorm" selected>Dorm</option>
-            <option value="Lounge">Lounge</option>
+            <option value="Lounge" selected>Lounge</option>
             <option value="Bathroom">Bathroom</option>
             <option value="Elevator">Elevator</option>
             <option value="Hallway">Hallway</option>
             <option value="Stairwell">Stairwell</option>
+            <option value="Exterior">Exterior</option>
           </select>
+
+          <label for="roomNumber">Room/floor number</label>
+          <input id="roomNumber" name="roomNumber" type="text" inputmode="numeric" pattern="[0-9]*" autocomplete="off" placeholder="Example: 4020, 6, 1210" />
+
+          <label class="checkbox-line" for="numberNotApplicable">
+            <input id="numberNotApplicable" name="numberNotApplicable" type="checkbox" />
+            Number is not applicable
+          </label>
+
+          <label for="locationDetails">Location details
+            <textarea id="locationDetails" name="locationDetails" rows="3" placeholder="Briefly describe where the issue is located."></textarea>
+          </label>
         </form>
       </section>
 
@@ -71,242 +64,12 @@
             <h2 id="issues-heading">Select observed issues</h2>
           </div>
         </div>
-        <div id="issueCatalog" class="issue-catalog">
-          <details class="issue-card" data-issue="Windows">
-            <summary class="issue-toggle">
-              <span class="issue-name">Windows</span>
-              <span class="issue-summary">Tap to expand</span>
-            </summary>
-            <div class="subcategory-list">
-              <div class="subcategory-row" data-subcategory="Window Limiter">
-                <label class="subcategory-check">
-                  <input type="checkbox" />
-                  <span>Window Limiter</span>
-                </label>
-                <textarea rows="3" placeholder="Describe what needs attention..." hidden></textarea>
-              </div>
-              <div class="subcategory-row" data-subcategory="Window Push Bar">
-                <label class="subcategory-check">
-                  <input type="checkbox" />
-                  <span>Window Push Bar</span>
-                </label>
-                <textarea rows="3" placeholder="Describe what needs attention..." hidden></textarea>
-              </div>
-              <div class="subcategory-row" data-subcategory="Window Screen">
-                <label class="subcategory-check">
-                  <input type="checkbox" />
-                  <span>Window Screen</span>
-                </label>
-                <textarea rows="3" placeholder="Describe what needs attention..." hidden></textarea>
-              </div>
-              <div class="subcategory-row" data-subcategory="Other">
-                <label class="subcategory-check">
-                  <input type="checkbox" />
-                  <span>Other</span>
-                </label>
-                <input class="custom-subcategory-input" type="text" placeholder="Custom sub-category" hidden />
-                <textarea rows="3" placeholder="Describe what needs attention..." hidden></textarea>
-              </div>
-            </div>
-          </details>
-          <details class="issue-card" data-issue="Paint/Wall">
-            <summary class="issue-toggle">
-              <span class="issue-name">Paint/Wall</span>
-              <span class="issue-summary">Tap to expand</span>
-            </summary>
-            <div class="subcategory-list">
-              <div class="subcategory-row" data-subcategory="Crack">
-                <label class="subcategory-check">
-                  <input type="checkbox" />
-                  <span>Crack</span>
-                </label>
-                <textarea rows="3" placeholder="Describe what needs attention..." hidden></textarea>
-              </div>
-              <div class="subcategory-row" data-subcategory="Peeling">
-                <label class="subcategory-check">
-                  <input type="checkbox" />
-                  <span>Peeling</span>
-                </label>
-                <textarea rows="3" placeholder="Describe what needs attention..." hidden></textarea>
-              </div>
-              <div class="subcategory-row" data-subcategory="Patch Needed">
-                <label class="subcategory-check">
-                  <input type="checkbox" />
-                  <span>Patch Needed</span>
-                </label>
-                <textarea rows="3" placeholder="Describe what needs attention..." hidden></textarea>
-              </div>
-              <div class="subcategory-row" data-subcategory="Other">
-                <label class="subcategory-check">
-                  <input type="checkbox" />
-                  <span>Other</span>
-                </label>
-                <input class="custom-subcategory-input" type="text" placeholder="Custom sub-category" hidden />
-                <textarea rows="3" placeholder="Describe what needs attention..." hidden></textarea>
-              </div>
-            </div>
-          </details>
-          <details class="issue-card" data-issue="HVAC">
-            <summary class="issue-toggle">
-              <span class="issue-name">HVAC</span>
-              <span class="issue-summary">Tap to expand</span>
-            </summary>
-            <div class="subcategory-list">
-              <div class="subcategory-row" data-subcategory="Displaced A/C Panel">
-                <label class="subcategory-check">
-                  <input type="checkbox" />
-                  <span>Displaced A/C Panel</span>
-                </label>
-                <textarea rows="3" placeholder="Describe what needs attention..." hidden></textarea>
-              </div>
-              <div class="subcategory-row" data-subcategory="Needs Servicing">
-                <label class="subcategory-check">
-                  <input type="checkbox" />
-                  <span>Needs Servicing</span>
-                </label>
-                <textarea rows="3" placeholder="Describe what needs attention..." hidden></textarea>
-              </div>
-              <div class="subcategory-row" data-subcategory="Other">
-                <label class="subcategory-check">
-                  <input type="checkbox" />
-                  <span>Other</span>
-                </label>
-                <input class="custom-subcategory-input" type="text" placeholder="Custom sub-category" hidden />
-                <textarea rows="3" placeholder="Describe what needs attention..." hidden></textarea>
-              </div>
-            </div>
-          </details>
-          <details class="issue-card" data-issue="Furniture">
-            <summary class="issue-toggle">
-              <span class="issue-name">Furniture</span>
-              <span class="issue-summary">Tap to expand</span>
-            </summary>
-            <div class="subcategory-list">
-              <div class="subcategory-row" data-subcategory="Chair">
-                <label class="subcategory-check">
-                  <input type="checkbox" />
-                  <span>Chair</span>
-                </label>
-                <textarea rows="3" placeholder="Describe what needs attention..." hidden></textarea>
-              </div>
-              <div class="subcategory-row" data-subcategory="Desk">
-                <label class="subcategory-check">
-                  <input type="checkbox" />
-                  <span>Desk</span>
-                </label>
-                <textarea rows="3" placeholder="Describe what needs attention..." hidden></textarea>
-              </div>
-              <div class="subcategory-row" data-subcategory="Drawer">
-                <label class="subcategory-check">
-                  <input type="checkbox" />
-                  <span>Drawer</span>
-                </label>
-                <textarea rows="3" placeholder="Describe what needs attention..." hidden></textarea>
-              </div>
-              <div class="subcategory-row" data-subcategory="Dresser">
-                <label class="subcategory-check">
-                  <input type="checkbox" />
-                  <span>Dresser</span>
-                </label>
-                <textarea rows="3" placeholder="Describe what needs attention..." hidden></textarea>
-              </div>
-              <div class="subcategory-row" data-subcategory="Mattress">
-                <label class="subcategory-check">
-                  <input type="checkbox" />
-                  <span>Mattress</span>
-                </label>
-                <textarea rows="3" placeholder="Describe what needs attention..." hidden></textarea>
-              </div>
-              <div class="subcategory-row" data-subcategory="Mattress Frame">
-                <label class="subcategory-check">
-                  <input type="checkbox" />
-                  <span>Mattress Frame</span>
-                </label>
-                <textarea rows="3" placeholder="Describe what needs attention..." hidden></textarea>
-              </div>
-              <div class="subcategory-row" data-subcategory="Other">
-                <label class="subcategory-check">
-                  <input type="checkbox" />
-                  <span>Other</span>
-                </label>
-                <input class="custom-subcategory-input" type="text" placeholder="Custom sub-category" hidden />
-                <textarea rows="3" placeholder="Describe what needs attention..." hidden></textarea>
-              </div>
-            </div>
-          </details>
-          <details class="issue-card" data-issue="Fridges">
-            <summary class="issue-toggle">
-              <span class="issue-name">Fridges</span>
-              <span class="issue-summary">Tap to expand</span>
-            </summary>
-            <div class="subcategory-list">
-              <div class="subcategory-row" data-subcategory="Needs Cleaning">
-                <label class="subcategory-check">
-                  <input type="checkbox" />
-                  <span>Needs Cleaning</span>
-                </label>
-                <textarea rows="3" placeholder="Describe what needs attention..." hidden></textarea>
-              </div>
-              <div class="subcategory-row" data-subcategory="Moldy">
-                <label class="subcategory-check">
-                  <input type="checkbox" />
-                  <span>Moldy</span>
-                </label>
-                <textarea rows="3" placeholder="Describe what needs attention..." hidden></textarea>
-              </div>
-              <div class="subcategory-row" data-subcategory="Malfunctioning">
-                <label class="subcategory-check">
-                  <input type="checkbox" />
-                  <span>Malfunctioning</span>
-                </label>
-                <textarea rows="3" placeholder="Describe what needs attention..." hidden></textarea>
-              </div>
-              <div class="subcategory-row" data-subcategory="Other">
-                <label class="subcategory-check">
-                  <input type="checkbox" />
-                  <span>Other</span>
-                </label>
-                <input class="custom-subcategory-input" type="text" placeholder="Custom sub-category" hidden />
-                <textarea rows="3" placeholder="Describe what needs attention..." hidden></textarea>
-              </div>
-            </div>
-          </details>
-          <details class="issue-card" data-issue="Carpet/Floor">
-            <summary class="issue-toggle">
-              <span class="issue-name">Carpet/Floor</span>
-              <span class="issue-summary">Tap to expand</span>
-            </summary>
-            <div class="subcategory-list">
-              <div class="subcategory-row" data-subcategory="Holes &amp; Tears">
-                <label class="subcategory-check">
-                  <input type="checkbox" />
-                  <span>Holes &amp; Tears</span>
-                </label>
-                <textarea rows="3" placeholder="Describe what needs attention..." hidden></textarea>
-              </div>
-              <div class="subcategory-row" data-subcategory="Stains">
-                <label class="subcategory-check">
-                  <input type="checkbox" />
-                  <span>Stains</span>
-                </label>
-                <textarea rows="3" placeholder="Describe what needs attention..." hidden></textarea>
-              </div>
-              <div class="subcategory-row" data-subcategory="Other">
-                <label class="subcategory-check">
-                  <input type="checkbox" />
-                  <span>Other</span>
-                </label>
-                <input class="custom-subcategory-input" type="text" placeholder="Custom sub-category" hidden />
-                <textarea rows="3" placeholder="Describe what needs attention..." hidden></textarea>
-              </div>
-            </div>
-          </details>
-        </div>
+        <div id="issueCatalog" class="issue-catalog"></div>
 
         <div class="custom-issues" aria-labelledby="custom-issues-heading">
           <div class="section-heading compact-heading">
             <div>
-              <h3 id="custom-issues-heading">Additional other issues</h3>
+              <h3 id="custom-issues-heading">Other Issues Not Listed Above</h3>
               <p class="hint">Add as many one-off issues as needed when the preset buttons do not fit.</p>
             </div>
             <button id="addCustomIssueButton" class="ghost-button" type="button">Add other issue</button>
@@ -322,7 +85,7 @@
             <h2 id="photos-heading">Attach photos</h2>
           </div>
         </div>
-        <p class="hint">Photos stay on this device. Photos are compressed when added, then labeled with the building and room number when the room is saved.</p>
+        <p class="hint">Photos stay on this device. Photos are compressed when added, then labeled with the building, inspected space, and number when the space is saved.</p>
         <label class="file-drop" for="photoInput">
           <span>Tap to add photos</span>
           <small>Use camera or photo library. Add as many as needed.</small>
@@ -334,8 +97,8 @@
       <section class="panel submit-panel" aria-labelledby="submit-heading">
         <h2 id="submit-heading">Submit</h2>
         <div class="actions-bar" aria-label="Entry actions">
-          <button id="saveEntryButton" class="primary-button" type="button">OK — save room and continue</button>
-          <button id="resetCurrentButton" class="ghost-button" type="button">Reset current room</button>
+          <button id="saveEntryButton" class="primary-button" type="button">OK — save and continue</button>
+          <button id="resetCurrentButton" class="ghost-button" type="button">Reset space</button>
           <p id="actionStatus" class="action-status" role="status" aria-live="polite"></p>
         </div>
       </section>
@@ -350,18 +113,13 @@
           </div>
           <span id="entryCount" class="count-pill">0 entries</span>
         </div>
-        <p class="hint">The tab-separated text below has no header row and pastes into spreadsheet columns A–F: Building Name, Room Number, Room Type, Categories and Subcategories, Additional Notes, and Partner Summary.</p>
-        <label class="export-label" for="exportText">Copyable room-check text</label>
-        <textarea id="exportText" class="export-text" rows="10" readonly placeholder="Saved room data will appear here."></textarea>
+        <p class="hint">Download the saved walkthrough data as a CSV, report, photos ZIP, or one combined ZIP.</p>
         <div class="export-actions">
-          <div class="export-action-column">
-            <button id="copyTextButton" class="primary-button secondary" type="button">Copy text</button>
-            <button id="clearEntriesButton" class="danger-button" type="button">Clear saved entries</button>
-          </div>
-          <div class="export-action-column">
-            <button id="downloadTextButton" class="ghost-button" type="button">Download text file</button>
-            <button id="downloadCsvButton" class="ghost-button" type="button">Download CSV file</button>
-          </div>
+          <button id="downloadCsvButton" class="primary-button secondary" type="button">Download CSV File</button>
+          <button id="downloadReportButton" class="ghost-button" type="button">Download Report</button>
+          <button id="downloadAllPhotosButton" class="ghost-button" type="button">Download All Photos as ZIP</button>
+          <button id="downloadAllContentsButton" class="ghost-button" type="button">Download All Contents</button>
+          <button id="clearEntriesButton" class="danger-button" type="button">Clear Saved Entries</button>
         </div>
         <div id="savedEntries" class="saved-entries"></div>
       </section>
@@ -374,8 +132,7 @@
           </div>
           <span id="photoCount" class="count-pill">0 photos</span>
         </div>
-        <p class="hint">Download photos individually, or download every labeled photo together as one ZIP file.</p>
-        <button id="downloadAllPhotosButton" class="primary-button secondary" type="button">Download all photos as ZIP</button>
+        <p class="hint">Download photos individually, or use the ZIP buttons above.</p>
         <div id="savedPhotos" class="saved-photo-grid"></div>
       </section>
     </main>

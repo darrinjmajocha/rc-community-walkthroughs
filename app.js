@@ -7,26 +7,20 @@ const PHOTO_DB_NAME = "rit-room-checks-photos-v1";
 const PHOTO_STORE_NAME = "photos";
 
 
-const buildings = [
-  "Baker A",
-  "Baker B",
-  "Colby A",
-  "Colby B",
-  "Colby C",
-  "DSP",
-  "Ellingson",
-  "Fish A",
-  "Fish B",
-  "Fish C",
-  "Gleason",
-  "Gibson A",
-  "Gibson B",
-  "Peterson",
-  "Res Hall A",
-  "Res Hall B",
-  "Res Hall C",
-  "Sol Huemann",
-];
+const communities = {
+  ABC: ["Res Hall A", "Res Hall B", "Res Hall C"],
+  "Fish/Baker": ["Fish A", "Fish B", "Fish C", "Baker A", "Baker B"],
+  Gleason: ["Gleason"],
+  "Colby/Gibson": ["Colby A", "Colby B", "Colby C", "Gibson"],
+  DSP: ["DSP"],
+  Sol: ["Sol Huemann"],
+  EPD: ["Ellingson", "Peterson", "Res Hall D"],
+  "Ellingson 6-12": ["Ellingson"],
+};
+
+const buildings = [...new Set(Object.values(communities).flat())];
+const inspectedSpaces = ["Lounge", "Bathroom", "Elevator", "Hallway", "Stairwell", "Exterior"];
+
 
 const buildingNumbers = {
   "Baker A": "27",
@@ -40,12 +34,12 @@ const buildingNumbers = {
   "Fish B": "41",
   "Fish C": "41",
   Gleason: "35",
-  "Gibson A": "49",
-  "Gibson B": "49",
+  Gibson: "49",
   Peterson: "50B",
   "Res Hall A": "28",
   "Res Hall B": "30",
   "Res Hall C": "32",
+  "Res Hall D": "50D",
   "Sol Huemann": "47",
 };
 
@@ -59,12 +53,13 @@ function buildingFilenameLabel(building) {
 }
 
 const issueCatalog = {
+  Bathroom: ["Mold/Mildew", "Shower Curtain Needs Replaced", "Needs Cleaning", "Shower Leaking", "Sink Leaking", "Toilet Clogged", "Other"],
   "Carpet/Floor": ["Holes & Tears", "Stains", "Other"],
-  Fridges: ["Needs Cleaning", "Moldy", "Malfunctioning", "Other"],
-  Furniture: ["Chair", "Desk", "Drawer", "Dresser", "Mattress", "Mattress Frame", "Other"],
+  "Common Work Orders": ["Lights Out", "Vacuuming/Mopping Needed", "Door Not Securing", "Malfunctioning Strobe", "Missing Signage", "Other"],
+  Furniture: ["Abandoned Furniture Present", "Lounge Furniture Missing", "Needs Repair", "Overly-Worn/Damaged", "Other"],
   HVAC: ["Displaced A/C Panel", "Needs Servicing", "Other"],
-  "Paint/Wall": ["Crack", "Peeling", "Patch Needed", "Other"],
-  Windows: ["Window Limiter", "Window Push Bar", "Window Screen", "Other"],
+  "Paint/Wall": ["Crack", "Peeling", "Patch Needed", "Mold/Mildew", "Cleaning Needed", "Other"],
+  Windows: ["Window Limiter", "Window Push Bar", "Window Screen", "Window Blinds", "Other"],
 };
 function sortCategoriesDescending(catalog) {
   return Object.entries(catalog).sort(([categoryA], [categoryB]) => categoryB.localeCompare(categoryA));
@@ -82,7 +77,7 @@ function collectDraftIssues(draft) {
         issue,
         subcategory: resolveIssueSubcategory(draft, issue, subcategory),
         description,
-      })),
+      })).flatMap(({ issue, subcategory, description }) => (Array.isArray(description) ? description : [description]).map((text) => ({ issue, subcategory, description: text }))),
     )
     .filter(({ subcategory }) => subcategory);
 
@@ -100,16 +95,18 @@ const state = {
   installPrompt: null,
 };
 
+const communitySelect = document.querySelector("#communitySelect");
 const buildingSelect = document.querySelector("#buildingSelect");
 const roomNumber = document.querySelector("#roomNumber");
+const numberNotApplicable = document.querySelector("#numberNotApplicable");
+const locationDetails = document.querySelector("#locationDetails");
 const roomType = document.querySelector("#roomType");
 const issueCatalogEl = document.querySelector("#issueCatalog");
 const saveEntryButton = document.querySelector("#saveEntryButton");
 const resetCurrentButton = document.querySelector("#resetCurrentButton");
-const copyTextButton = document.querySelector("#copyTextButton");
-const downloadTextButton = document.querySelector("#downloadTextButton");
+const downloadReportButton = document.querySelector("#downloadReportButton");
+const downloadAllContentsButton = document.querySelector("#downloadAllContentsButton");
 const downloadCsvButton = document.querySelector("#downloadCsvButton");
-const exportText = document.querySelector("#exportText");
 const downloadAllPhotosButton = document.querySelector("#downloadAllPhotosButton");
 const savedPhotos = document.querySelector("#savedPhotos");
 const photoCount = document.querySelector("#photoCount");
@@ -139,7 +136,7 @@ let savedPhotoRenderToken = 0;
 let draftPhotoRenderToken = 0;
 
 function defaultDraft() {
-  return { building: buildings[0], roomNumber: "", roomType: "Dorm", issues: {}, customSubcategories: {}, customIssues: [], photos: [] };
+  return { community: Object.keys(communities)[0], building: communities[Object.keys(communities)[0]][0], roomNumber: "", numberNotApplicable: false, locationDetails: "", roomType: "Lounge", issues: {}, customSubcategories: {}, customIssues: [], photos: [] };
 }
 
 function readStoredJson(key, fallback) {
@@ -175,9 +172,12 @@ function saveEntries() {
 }
 
 function saveDraft() {
+  state.draft.community = communitySelect.value;
   state.draft.building = buildingSelect.value;
   state.draft.roomNumber = roomNumber.value.trim();
-  state.draft.roomType = roomType.value || "Dorm";
+  state.draft.numberNotApplicable = numberNotApplicable.checked;
+  state.draft.locationDetails = locationDetails.value.trim();
+  state.draft.roomType = roomType.value || "Lounge";
   return writeStoredJson(DRAFT_KEY, state.draft);
 }
 
@@ -187,15 +187,32 @@ function showStatus(message, isError = false) {
 }
 
 function renderBuildings() {
-  const savedBuilding = state.draft.building || buildings[0];
-  if ([...buildingSelect.options].some((option) => option.value === savedBuilding)) {
-    buildingSelect.value = savedBuilding;
-  }
+  communitySelect.innerHTML = Object.keys(communities).map((community) => `<option value="${escapeHtml(community)}">${escapeHtml(community)}</option>`).join("");
+  communitySelect.value = state.draft.community || Object.keys(communities)[0];
+  const availableBuildings = communities[communitySelect.value] || buildings;
+  buildingSelect.innerHTML = availableBuildings.map((building) => `<option value="${escapeHtml(building)}">${escapeHtml(building)}</option>`).join("");
+  buildingSelect.value = availableBuildings.includes(state.draft.building) ? state.draft.building : availableBuildings[0];
   roomNumber.value = state.draft.roomNumber || "";
-  roomType.value = state.draft.roomType || "Dorm";
+  numberNotApplicable.checked = Boolean(state.draft.numberNotApplicable);
+  locationDetails.value = state.draft.locationDetails || "";
+  roomType.value = state.draft.roomType || "Lounge";
+  updateSpaceFields();
+}
+
+function updateSpaceFields() {
+  const type = roomType.value;
+  const needsNumber = ["Lounge", "Bathroom", "Elevator", "Hallway", "Stairwell"].includes(type);
+  const canBeNa = ["Elevator", "Hallway", "Stairwell"].includes(type);
+  const needsLocation = ["Elevator", "Hallway", "Stairwell", "Exterior"].includes(type);
+  roomNumber.closest("label").hidden = !needsNumber;
+  roomNumber.required = needsNumber && !numberNotApplicable.checked;
+  roomNumber.disabled = !needsNumber || numberNotApplicable.checked;
+  numberNotApplicable.closest("label").hidden = !canBeNa;
+  locationDetails.closest("label").hidden = !needsLocation;
 }
 
 function renderIssueCatalog() {
+  issueCatalogEl.innerHTML = sortCategoriesDescending(issueCatalog).map(([issue, subcategories]) => `<details class="issue-card" data-issue="${escapeHtml(issue)}"><summary class="issue-toggle"><span class="issue-name">${escapeHtml(issue)}</span><span class="issue-summary">Tap to expand</span></summary><div class="subcategory-list">${subcategories.map((subcategory) => `<div class="subcategory-row" data-subcategory="${escapeHtml(subcategory)}"><label class="subcategory-check"><input type="checkbox" /><span>${escapeHtml(subcategory)}</span></label>${subcategory === "Other" ? '<input class="custom-subcategory-input" type="text" placeholder="Custom sub-category" hidden />' : ""}<div class="issue-description-list"></div></div>`).join("")}</div></details>`).join("");
   const cards = [...issueCatalogEl.querySelectorAll(".issue-card[data-issue]")];
   cards.sort((cardA, cardB) => cardB.dataset.issue.localeCompare(cardA.dataset.issue));
   cards.forEach((card) => issueCatalogEl.append(card));
@@ -208,11 +225,10 @@ function renderIssueCatalog() {
     issueNode.querySelectorAll(".subcategory-row[data-subcategory]").forEach((row) => {
       const subcategory = row.dataset.subcategory;
       const checkbox = row.querySelector('input[type="checkbox"]');
-      const textarea = row.querySelector("textarea");
+      const descriptionList = row.querySelector(".issue-description-list");
       const customSubcategoryInput = row.querySelector(".custom-subcategory-input");
       checkbox.checked = Object.prototype.hasOwnProperty.call(state.draft.issues?.[issue] || {}, subcategory);
-      textarea.value = state.draft.issues?.[issue]?.[subcategory] || "";
-      textarea.hidden = !checkbox.checked;
+      renderIssueDescriptionBoxes(row, issue, subcategory, checkbox.checked);
       if (customSubcategoryInput) {
         customSubcategoryInput.value = state.draft.customSubcategories?.[issue]?.[subcategory] || "";
         customSubcategoryInput.hidden = !checkbox.checked;
@@ -222,29 +238,23 @@ function renderIssueCatalog() {
       row.dataset.bound = "true";
       checkbox.addEventListener("change", () => {
         if (!state.draft.issues[issue]) state.draft.issues[issue] = {};
-        textarea.hidden = !checkbox.checked;
+        renderIssueDescriptionBoxes(row, issue, subcategory, checkbox.checked);
         if (customSubcategoryInput) customSubcategoryInput.hidden = !checkbox.checked;
         if (checkbox.checked) {
-          state.draft.issues[issue][subcategory] = textarea.value;
+          if (!Array.isArray(state.draft.issues[issue][subcategory])) state.draft.issues[issue][subcategory] = [""];
           if (customSubcategoryInput) {
             if (!state.draft.customSubcategories[issue]) state.draft.customSubcategories[issue] = {};
             state.draft.customSubcategories[issue][subcategory] = customSubcategoryInput.value.trim();
           }
         } else {
           delete state.draft.issues[issue][subcategory];
-          textarea.value = "";
+
           if (customSubcategoryInput) {
             delete state.draft.customSubcategories?.[issue]?.[subcategory];
             customSubcategoryInput.value = "";
           }
         }
         updateIssueSummary(issueNode, issue);
-        saveDraft();
-      });
-
-      textarea.addEventListener("input", () => {
-        if (!state.draft.issues[issue]) state.draft.issues[issue] = {};
-        state.draft.issues[issue][subcategory] = textarea.value.trim();
         saveDraft();
       });
 
@@ -262,6 +272,35 @@ function renderIssueCatalog() {
     summary.textContent = "Tap to expand";
     updateIssueSummary(issueNode, issue);
   });
+}
+
+
+function renderIssueDescriptionBoxes(row, issue, subcategory, checked) {
+  const list = row.querySelector(".issue-description-list");
+  list.innerHTML = "";
+  list.hidden = !checked;
+  if (!checked) return;
+  const values = Array.isArray(state.draft.issues?.[issue]?.[subcategory]) ? state.draft.issues[issue][subcategory] : [state.draft.issues?.[issue]?.[subcategory] || ""];
+  if (!state.draft.issues[issue]) state.draft.issues[issue] = {};
+  state.draft.issues[issue][subcategory] = values;
+  values.forEach((value, index) => {
+    const textarea = document.createElement("textarea");
+    textarea.rows = 3;
+    textarea.placeholder = "Describe what needs attention...";
+    textarea.value = value;
+    textarea.addEventListener("input", () => { state.draft.issues[issue][subcategory][index] = textarea.value.trim(); saveDraft(); });
+    list.append(textarea);
+    if (index > 0) {
+      const remove = document.createElement("button");
+      remove.type = "button"; remove.className = "danger-button small-button"; remove.textContent = "Remove this issue";
+      remove.addEventListener("click", () => { state.draft.issues[issue][subcategory].splice(index, 1); saveDraft(); renderIssueCatalog(); });
+      list.append(remove);
+    }
+  });
+  const add = document.createElement("button");
+  add.type = "button"; add.className = "ghost-button small-button"; add.textContent = `Add another ${resolveIssueSubcategory(state.draft, issue, subcategory)} issue`;
+  add.addEventListener("click", () => { state.draft.issues[issue][subcategory].push(""); saveDraft(); renderIssueCatalog(); });
+  list.append(add);
 }
 
 function updateIssueSummary(issueNode, issue) {
@@ -387,14 +426,14 @@ function safeFilenamePart(value) {
   return String(value).trim().replace(/[^a-z0-9_-]+/gi, "_").replace(/^_+|_+$/g, "") || "unknown";
 }
 
-async function labelPhoto(photo, building, room, index, filenameBuilding = building) {
+async function labelPhoto(photo, building, space, room, index, filenameBuilding = building) {
   const image = await loadImage(photo.dataUrl);
   const canvas = drawResizedImage(image, PHOTO_DIMENSION_STEPS[0]);
   const width = canvas.width;
   const height = canvas.height;
   const context = canvas.getContext("2d");
 
-  const roomLabel = `${building} — ${room}`;
+  const roomLabel = `${building} — ${space}${room && room !== "N/A" ? ` ${room}` : ""}`;
   const issueLabels = (photo.associatedIssues || []).map(({ issue, subcategory }) => `${issue} -- ${subcategory}`);
   const padding = Math.max(18, Math.round(width * 0.025));
   const maximumTextWidth = Math.max(1, width - padding * 2);
@@ -438,14 +477,14 @@ async function labelPhoto(photo, building, room, index, filenameBuilding = build
 
   const labeledDataUrl = await compressCanvasForStorage(canvas);
   return {
-    name: `${safeFilenamePart(filenameBuilding)}_${safeFilenamePart(room)}_${index + 1}.jpg`,
+    name: `${safeFilenamePart(filenameBuilding)}_${safeFilenamePart(space)}${room && room !== "N/A" ? `_${safeFilenamePart(room)}` : ""}_${index + 1}.jpg`,
     dataUrl: labeledDataUrl,
     storedBytes: dataUrlSizeInBytes(labeledDataUrl),
   };
 }
 
-async function labelRoomPhotos(photos, building, room) {
-  return Promise.all(photos.map((photo, index) => labelPhoto(photo, buildingLabel(building), room, index, buildingFilenameLabel(building))));
+async function labelRoomPhotos(photos, building, space, room) {
+  return Promise.all(photos.map((photo, index) => labelPhoto(photo, buildingLabel(building), space, room, index, buildingFilenameLabel(building))));
 }
 
 function renderCustomIssues() {
@@ -684,8 +723,8 @@ async function saveCurrentEntry() {
   showStatus("");
   saveDraft();
   const issues = collectIssues();
-  if (!state.draft.building || !state.draft.roomNumber) {
-    showStatus("Choose a building and enter a room number before saving.", true);
+  if (!state.draft.building || (roomNumber.required && !state.draft.roomNumber)) {
+    showStatus("Choose a building and enter required space details before saving.", true);
     roomNumber.focus();
     return;
   }
@@ -702,8 +741,8 @@ async function saveCurrentEntry() {
     if (!confirmed) return;
   }
 
-  const savedRoomNumber = state.draft.roomNumber;
-  const savedRoomType = state.draft.roomType || "Dorm";
+  const savedRoomNumber = state.draft.numberNotApplicable ? "N/A" : state.draft.roomNumber;
+  const savedRoomType = state.draft.roomType || "Lounge";
   saveEntryButton.disabled = true;
   showStatus(state.draft.photos.length ? "Labeling and saving photos…" : "Saving room…");
   let labeledPhotos;
@@ -715,7 +754,7 @@ async function saveCurrentEntry() {
       associatedIssues: (state.draft.photos[index].associatedIssues || []).filter((issue) => currentIssueKeys.has(issueAssociationKey(issue))),
     }));
     if (photosForSubmission.some((photo) => !photo.dataUrl)) throw new Error("A draft photo could not be found in browser storage.");
-    const labeledPhotoRecords = await labelRoomPhotos(photosForSubmission, state.draft.building, savedRoomNumber);
+    const labeledPhotoRecords = await labelRoomPhotos(photosForSubmission, state.draft.building, savedRoomType, savedRoomNumber);
     labeledPhotos = await Promise.all(labeledPhotoRecords.map(saveStoredPhoto));
   } catch (error) {
     console.error("Could not label room photos", error);
@@ -730,6 +769,8 @@ async function saveCurrentEntry() {
     building: state.draft.building,
     roomNumber: savedRoomNumber,
     roomType: savedRoomType,
+    community: state.draft.community,
+    locationDetails: state.draft.locationDetails,
     issues,
     photos: labeledPhotos,
   };
@@ -752,14 +793,15 @@ async function saveCurrentEntry() {
 
   resetCurrentDraft(true);
   saveEntryButton.disabled = false;
-  showStatus(`Room ${savedRoomNumber} saved. Text and labeled photos are ready below.`);
+  showStatus(`${savedRoomType} ${savedRoomNumber} saved. Downloads and labeled photos are ready below.`);
   roomNumber.focus();
 }
 
 function resetCurrentDraft(keepBuilding = false) {
   const building = keepBuilding ? state.draft.building : buildings[0];
+  const community = keepBuilding ? state.draft.community : Object.keys(communities)[0];
   (state.draft.photos || []).forEach((photo) => deleteStoredPhoto(photo).catch((error) => console.warn("Could not delete draft photo", error)));
-  state.draft = { ...defaultDraft(), building };
+  state.draft = { ...defaultDraft(), community, building };
   writeStoredJson(DRAFT_KEY, state.draft);
   renderBuildings();
   renderIssueCatalog();
@@ -772,7 +814,6 @@ function renderSavedEntries() {
   const photos = state.entries.flatMap((entry) => entry.photos || []);
   entryCount.textContent = `${count} ${count === 1 ? "entry" : "entries"}`;
   photoCount.textContent = `${photos.length} ${photos.length === 1 ? "photo" : "photos"}`;
-  exportText.value = count ? buildExportText() : "";
   savedEntries.innerHTML = "";
   savedPhotos.innerHTML = "";
 
@@ -784,7 +825,7 @@ function renderSavedEntries() {
       entryEl.className = "saved-entry";
       entryEl.innerHTML = `
         <h3>${escapeHtml(buildingLabel(entry.building))} — ${escapeHtml(entry.roomNumber)}</h3>
-        <p>${escapeHtml(entry.roomType || "Dorm")} • ${entry.issues.length} issue rows • ${(entry.photos || []).length} photo(s)</p>
+        <p>${escapeHtml(entry.roomType || "Lounge")} • ${entry.issues.length} issue rows • ${(entry.photos || []).length} photo(s)</p>
         <p>${entry.issues.map(({ issue, subcategory }) => `${escapeHtml(issue)}: ${escapeHtml(subcategory)}`).join("; ")}</p>
       `;
       savedEntries.append(entryEl);
@@ -896,7 +937,7 @@ function buildExportText() {
   const rows = state.entries.map((entry) => [
     buildingLabel(entry.building),
     entry.roomNumber,
-    entry.roomType || "Dorm",
+    entry.roomType || "Lounge",
     formatIssuePairs(entry),
     formatIssueNotes(entry),
     formatPartnerSummary(entry),
@@ -960,7 +1001,7 @@ function csvCell(value) {
 function buildCsvText() {
   const rows = [["Building Name", "Room Number", "Room Type", "Categories and Subcategories", "Additional Notes", "Partner Summary"]];
   state.entries.forEach((entry) => {
-    rows.push([buildingLabel(entry.building), entry.roomNumber, entry.roomType || "Dorm", formatIssuePairs(entry), formatIssueNotes(entry), formatPartnerSummary(entry)]);
+    rows.push([buildingLabel(entry.building), entry.roomNumber, entry.roomType || "Lounge", formatIssuePairs(entry), formatIssueNotes(entry), formatPartnerSummary(entry)]);
   });
   return rows.map((row) => row.map(csvCell).join(",")).join("\r\n");
 }
@@ -1089,13 +1130,48 @@ async function downloadAllPhotos() {
   showStatus(`${files.length} photo${files.length === 1 ? "" : "s"} saved in one ZIP file.`);
 }
 
+
+function reportHtml() {
+  const generated = new Date();
+  const community = state.entries[0]?.community || state.draft.community || "Selected";
+  const sections = inspectedSpaces.map((space) => {
+    const entries = state.entries.filter((entry) => (entry.roomType || "Lounge") === space)
+      .sort((a, b) => (/^\d+$/.test(a.roomNumber) && /^\d+$/.test(b.roomNumber)) ? Number(a.roomNumber) - Number(b.roomNumber) : 0);
+    if (!entries.length) return "";
+    return `<h2>${escapeHtml(space)}s</h2>` + entries.map((entry) => `<section><h3>Inspection Space Details: ${escapeHtml(buildingLabel(entry.building))}${entry.roomNumber ? ` — ${escapeHtml(entry.roomNumber)}` : ""}</h3>${entry.locationDetails ? `<p><strong>Location details:</strong> ${escapeHtml(entry.locationDetails)}</p>` : ""}${entry.issues.map((issue) => `<div class="issue"><p><strong>Category:</strong> ${escapeHtml(issue.issue)}</p><p><strong>Sub-Category:</strong> ${escapeHtml(issue.subcategory)}</p><p><strong>Description:</strong> ${escapeHtml(issue.description)}</p></div>`).join("")}</section>`).join("");
+  }).join("");
+  return `<!doctype html><meta charset="utf-8"><title>${escapeHtml(community)} Community Report</title><style>body{font-family:Arial,sans-serif;margin:32px;line-height:1.4}h1{color:#f36e21}.issue{border-top:1px solid #ccc;padding:8px 0}section{break-inside:avoid}</style><h1>${escapeHtml(community)} Community</h1><p>Here is the community walkthrough report for the "${escapeHtml(community)} Community" for ${generated.toLocaleDateString()}.</p>${sections}<footer><p>Report generated ${generated.toLocaleString()}.</p></footer>`;
+}
+
+function downloadReportFile() {
+  if (!state.entries.length) { showStatus("Save at least one space before downloading the report.", true); return; }
+  downloadBlob(new Blob([reportHtml()], { type: "application/pdf" }), `community-walkthrough-report-${new Date().toISOString().slice(0, 10)}.pdf`);
+}
+
+async function downloadAllContents() {
+  if (!state.entries.length) { showStatus("Save at least one space before downloading all contents.", true); return; }
+  const encoder = new TextEncoder();
+  const files = [
+    { name: `community-walkthrough-${new Date().toISOString().slice(0, 10)}.csv`, bytes: encoder.encode(`﻿${buildCsvText()}`) },
+    { name: `community-walkthrough-report-${new Date().toISOString().slice(0, 10)}.pdf`, bytes: encoder.encode(reportHtml()) },
+  ];
+  const photos = state.entries.flatMap((entry) => entry.photos || []);
+  const resolvedPhotos = await Promise.all(photos.map(async (photo) => ({ ...photo, dataUrl: await resolvePhotoDataUrl(photo) })));
+  files.push(...resolvedPhotos.filter((photo) => photo.dataUrl).map((photo) => ({ name: `photos/${photo.name}`, bytes: dataUrlToBytes(photo.dataUrl) })));
+  downloadBlob(createZip(files), `community-walkthrough-contents-${uniqueDownloadId()}.zip`);
+  showStatus("CSV, report, and photos saved in one ZIP file.");
+}
+
 function escapeHtml(value) {
   return String(value).replace(/[&<>"]/g, (char) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[char]);
 }
 
+communitySelect.addEventListener("change", () => { state.draft.community = communitySelect.value; state.draft.building = (communities[communitySelect.value] || buildings)[0]; renderBuildings(); saveDraft(); });
 buildingSelect.addEventListener("change", saveDraft);
 roomNumber.addEventListener("input", saveDraft);
-roomType.addEventListener("change", saveDraft);
+numberNotApplicable.addEventListener("change", () => { updateSpaceFields(); saveDraft(); });
+locationDetails.addEventListener("input", saveDraft);
+roomType.addEventListener("change", () => { updateSpaceFields(); saveDraft(); });
 photoInput.addEventListener("change", (event) => {
   handlePhotos(event.target.files);
   event.target.value = "";
@@ -1104,8 +1180,8 @@ roomForm.addEventListener("submit", (event) => event.preventDefault());
 addCustomIssueButton.addEventListener("click", addCustomIssue);
 saveEntryButton.addEventListener("click", saveCurrentEntry);
 resetCurrentButton.addEventListener("click", confirmResetCurrentRoom);
-copyTextButton.addEventListener("click", copyExportText);
-downloadTextButton.addEventListener("click", downloadTextFile);
+downloadReportButton.addEventListener("click", downloadReportFile);
+downloadAllContentsButton.addEventListener("click", downloadAllContents);
 downloadCsvButton.addEventListener("click", downloadCsvFile);
 downloadAllPhotosButton.addEventListener("click", downloadAllPhotos);
 savePhotoIssuesButton.addEventListener("click", savePhotoIssueAssociations);
