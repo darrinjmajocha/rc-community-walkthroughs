@@ -128,7 +128,7 @@ test("issue selections are cleared only through the current-room reset flow", ()
 
 test("legacy offline caches are removed instead of serving stale app files", () => {
   assert.match(app, /getRegistrations\(\)/);
-  assert.match(app, /name\.startsWith\("room-checks-"\)/);
+  assert.match(app, /cacheNames\.map\(\(name\) => caches\.delete\(name\)\)/);
   assert.match(serviceWorker, /registration\.unregister\(\)/);
   assert.doesNotMatch(serviceWorker, /respondWith/);
 });

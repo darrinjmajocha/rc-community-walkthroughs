@@ -721,6 +721,7 @@ async function renderPhotos() {
 }
 
 function collectIssues() {
+  syncIssueCatalogSelections();
   return collectDraftIssues(state.draft);
 }
 
@@ -1214,7 +1215,7 @@ async function removeLegacyOfflineCache() {
   }
   if ("caches" in globalThis) {
     const cacheNames = await caches.keys();
-    await Promise.all(cacheNames.filter((name) => name.startsWith("room-checks-")).map((name) => caches.delete(name)));
+    await Promise.all(cacheNames.map((name) => caches.delete(name)));
   }
 }
 
