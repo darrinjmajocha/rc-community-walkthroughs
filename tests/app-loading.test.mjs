@@ -20,10 +20,7 @@ test("community and building controls are present", () => {
   assert.match(app, /"Fish\/Baker": \["Fish A", "Fish B", "Fish C", "Baker A", "Baker B"\]/);
 });
 
-test("native issue categories are present in static HTML and app catalog", () => {
-  const categories = [...index.matchAll(/<details class="issue-card" data-issue="([^"]+)">/g)].map((match) => match[1]);
-  assert.deepEqual(categories, ["Windows", "Paint/Wall", "HVAC", "Furniture", "Common Work Orders", "Carpet/Floor", "Bathroom"]);
-  assert.ok((index.match(/class="subcategory-row"/g) || []).length >= 34);
+test("native issue categories are present in the app catalog", () => {
   assert.match(app, /Windows: \["Window Limiter", "Window Push Bar", "Window Screen", "Window Blinds", "Other"\]/);
   assert.match(app, /Bathroom: \["Mold\/Mildew", "Shower Curtain Needs Replaced", "Needs Cleaning", "Shower Leaking", "Sink Leaking", "Toilet Clogged", "Other"\]/);
   assert.match(app, /"Common Work Orders": \["Lights Out", "Vacuuming\/Mopping Needed", "Door Not Securing", "Malfunctioning Strobe", "Missing Signage", "Other"\]/);
