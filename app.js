@@ -332,7 +332,7 @@ async function handlePhotos(files) {
     }
     renderPhotos();
     const totalSavedBytes = photos.reduce((total, photo) => total + (photo.storedBytes || dataUrlSizeInBytes(photo.dataUrl)), 0);
-    showStatus(`${photos.length} photo${photos.length === 1 ? "" : "s"} compressed to ${formatBytes(totalSavedBytes)} and added. Labels will be applied when the room is saved.`);
+    showStatus(`${photos.length} photo${photos.length === 1 ? "" : "s"} compressed to ${formatBytes(totalSavedBytes)} and added. Labels will be applied when the space is saved.`);
   } catch (error) {
     console.error("Could not read selected photos", error);
     showStatus("The selected photos could not be read.", true);
