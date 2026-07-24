@@ -20,11 +20,11 @@ test("selected issues are collected even when their description is blank", () =>
 
 test("custom subcategories replace selected Other subcategory labels", () => {
   const issues = collectDraftIssues({
-    issues: { Fridges: { Other: "The door hinge has come loose." } },
-    customSubcategories: { Fridges: { Other: "Broken Hinge" } },
+    issues: { Bathroom: { Other: "The door hinge has come loose." } },
+    customSubcategories: { Bathroom: { Other: "Broken Hinge" } },
     customIssues: [],
   });
-  assert.deepEqual(issues, [{ issue: "Fridges", subcategory: "Broken Hinge", description: "The door hinge has come loose." }]);
+  assert.deepEqual(issues, [{ issue: "Bathroom", subcategory: "Broken Hinge", description: "The door hinge has come loose." }]);
 });
 
 test("custom issues are included and empty drafts are ignored", () => {
@@ -58,7 +58,7 @@ test("tab-separated output creates six consolidated spreadsheet columns with par
 });
 
 test("photo filenames use building, room, and one-based sequence", () => {
-  assert.equal(photoFilename("Res Hall A", "11-009", 0), "Res_Hall_A_11-009_1.jpg");
+  assert.equal(photoFilename("50A_Ellingson", "Elevator", "1", 0), "50A_Ellingson_Elevator_1_1.jpg");
 });
 
 
@@ -67,13 +67,13 @@ test("CSV output quotes all six consolidated columns and escapes descriptions", 
     {
       building: "27-Baker A",
       roomNumber: "4020",
-      roomType: "Dorm",
+      roomType: "Lounge",
       issues: [{ issue: "Paint/Wall", subcategory: "Patch Needed", description: 'Wall, near "desk"' }],
     },
   ]);
   assert.equal(
     csv,
     '"Building Name","Room Number","Room Type","Categories and Subcategories","Additional Notes","Partner Summary"\r\n' +
-      '"27-Baker A","4020","Dorm","Paint/Wall, Patch Needed","Wall, near ""desk""","27-Baker A 4020 -- Patch Needed: Wall, near ""desk"""',
+      '"27-Baker A","4020","Lounge","Paint/Wall, Patch Needed","Wall, near ""desk""","27-Baker A 4020 -- Patch Needed: Wall, near ""desk"""',
   );
 });
