@@ -186,6 +186,11 @@ function showStatus(message, isError = false) {
   actionStatus.classList.toggle("error", isError);
 }
 
+function cssEscape(value) {
+  if (globalThis.CSS?.escape) return CSS.escape(value);
+  return String(value).replace(/\\/g, "\\\\").replace(/"/g, '\\"');
+}
+
 function renderBuildings() {
   communitySelect.innerHTML = Object.keys(communities).map((community) => `<option value="${escapeHtml(community)}">${escapeHtml(community)}</option>`).join("");
   communitySelect.value = state.draft.community || Object.keys(communities)[0];
