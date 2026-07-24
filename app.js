@@ -52,7 +52,7 @@ function buildingFilenameLabel(building) {
   return buildingLabel(building).replace("-", "_");
 }
 
-const issueCatalog = globalThis.RC_ISSUE_CATALOG || {
+const issueCatalog = {
   Bathroom: ["Mold/Mildew", "Shower Curtain Needs Replaced", "Needs Cleaning", "Shower Leaking", "Sink Leaking", "Toilet Clogged", "Other"],
   "Carpet/Floor": ["Holes & Tears", "Stains", "Other"],
   "Common Work Orders": ["Lights Out", "Vacuuming/Mopping Needed", "Door Not Securing", "Malfunctioning Strobe", "Missing Signage", "Other"],
@@ -216,60 +216,8 @@ function updateSpaceFields() {
   locationDetails.closest("label").hidden = !needsLocation;
 }
 
-function createIssueCard(issue, subcategories) {
-  const card = document.createElement("details");
-  card.className = "issue-card";
-  card.dataset.issue = issue;
-
-  const summary = document.createElement("summary");
-  summary.className = "issue-toggle";
-  const name = document.createElement("span");
-  name.className = "issue-name";
-  name.textContent = issue;
-  const status = document.createElement("span");
-  status.className = "issue-summary";
-  status.textContent = "Tap to expand";
-  summary.append(name, status);
-
-  const list = document.createElement("div");
-  list.className = "subcategory-list";
-  subcategories.forEach((subcategory) => {
-    const row = document.createElement("div");
-    row.className = "subcategory-row";
-    row.dataset.subcategory = subcategory;
-    const label = document.createElement("label");
-    label.className = "subcategory-check";
-    const checkbox = document.createElement("input");
-    checkbox.type = "checkbox";
-    const text = document.createElement("span");
-    text.textContent = subcategory;
-    label.append(checkbox, text);
-    row.append(label);
-    if (subcategory === "Other") {
-      const customInput = document.createElement("input");
-      customInput.className = "custom-subcategory-input";
-      customInput.type = "text";
-      customInput.placeholder = "Custom sub-category";
-      customInput.hidden = true;
-      row.append(customInput);
-    }
-    const descriptions = document.createElement("div");
-    descriptions.className = "issue-description-list";
-    row.append(descriptions);
-    list.append(row);
-  });
-
-  card.append(summary, list);
-  return card;
-}
-
 function renderIssueCatalog() {
-  sortCategoriesDescending(issueCatalog).forEach(([issue, subcategories]) => {
-    if (!issueCatalogEl.querySelector(`.issue-card[data-issue="${cssEscape(issue)}"]`)) {
-      issueCatalogEl.append(createIssueCard(issue, subcategories));
-    }
-  });
-
+  issueCatalogEl.innerHTML = sortCategoriesDescending(issueCatalog).map(([issue, subcategories]) => `<details class="issue-card" data-issue="${escapeHtml(issue)}"><summary class="issue-toggle"><span class="issue-name">${escapeHtml(issue)}</span><span class="issue-summary">Tap to expand</span></summary><div class="subcategory-list">${subcategories.map((subcategory) => `<div class="subcategory-row" data-subcategory="${escapeHtml(subcategory)}"><label class="subcategory-check"><input type="checkbox" /><span>${escapeHtml(subcategory)}</span></label>${subcategory === "Other" ? '<input class="custom-subcategory-input" type="text" placeholder="Custom sub-category" hidden />' : ""}<div class="issue-description-list"></div></div>`).join("")}</div></details>`).join("");
   const cards = [...issueCatalogEl.querySelectorAll(".issue-card[data-issue]")];
   cards.sort((cardA, cardB) => cardB.dataset.issue.localeCompare(cardA.dataset.issue));
   cards.forEach((card) => issueCatalogEl.append(card));
