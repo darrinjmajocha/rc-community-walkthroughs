@@ -52,7 +52,7 @@ function buildingFilenameLabel(building) {
   return buildingLabel(building).replace("-", "_");
 }
 
-const issueCatalog = globalThis.RC_ISSUE_CATALOG || {
+const issueCatalog = {
   Bathroom: ["Mold/Mildew", "Shower Curtain Needs Replaced", "Needs Cleaning", "Shower Leaking", "Sink Leaking", "Toilet Clogged", "Other"],
   "Carpet/Floor": ["Holes & Tears", "Stains", "Other"],
   "Common Work Orders": ["Lights Out", "Vacuuming/Mopping Needed", "Door Not Securing", "Malfunctioning Strobe", "Missing Signage", "Other"],
@@ -98,11 +98,8 @@ const state = {
 const communitySelect = document.querySelector("#communitySelect");
 const buildingSelect = document.querySelector("#buildingSelect");
 const roomNumber = document.querySelector("#roomNumber");
-const roomNumberLabel = document.querySelector('label[for="roomNumber"]');
 const numberNotApplicable = document.querySelector("#numberNotApplicable");
-const numberNotApplicableLabel = numberNotApplicable?.closest("label");
 const locationDetails = document.querySelector("#locationDetails");
-const locationDetailsLabel = document.querySelector('label[for="locationDetails"]');
 const roomType = document.querySelector("#roomType");
 const issueCatalogEl = document.querySelector("#issueCatalog");
 const saveEntryButton = document.querySelector("#saveEntryButton");
@@ -212,67 +209,15 @@ function updateSpaceFields() {
   const needsNumber = ["Lounge", "Bathroom", "Elevator", "Hallway", "Stairwell"].includes(type);
   const canBeNa = ["Elevator", "Hallway", "Stairwell"].includes(type);
   const needsLocation = ["Elevator", "Hallway", "Stairwell", "Exterior"].includes(type);
-  if (roomNumberLabel) roomNumberLabel.hidden = !needsNumber;
+  roomNumber.closest("label").hidden = !needsNumber;
   roomNumber.required = needsNumber && !numberNotApplicable.checked;
   roomNumber.disabled = !needsNumber || numberNotApplicable.checked;
-  if (numberNotApplicableLabel) numberNotApplicableLabel.hidden = !canBeNa;
-  if (locationDetailsLabel) locationDetailsLabel.hidden = !needsLocation;
-}
-
-function createIssueCard(issue, subcategories) {
-  const card = document.createElement("details");
-  card.className = "issue-card";
-  card.dataset.issue = issue;
-
-  const summary = document.createElement("summary");
-  summary.className = "issue-toggle";
-  const name = document.createElement("span");
-  name.className = "issue-name";
-  name.textContent = issue;
-  const status = document.createElement("span");
-  status.className = "issue-summary";
-  status.textContent = "Tap to expand";
-  summary.append(name, status);
-
-  const list = document.createElement("div");
-  list.className = "subcategory-list";
-  subcategories.forEach((subcategory) => {
-    const row = document.createElement("div");
-    row.className = "subcategory-row";
-    row.dataset.subcategory = subcategory;
-    const label = document.createElement("label");
-    label.className = "subcategory-check";
-    const checkbox = document.createElement("input");
-    checkbox.type = "checkbox";
-    const text = document.createElement("span");
-    text.textContent = subcategory;
-    label.append(checkbox, text);
-    row.append(label);
-    if (subcategory === "Other") {
-      const customInput = document.createElement("input");
-      customInput.className = "custom-subcategory-input";
-      customInput.type = "text";
-      customInput.placeholder = "Custom sub-category";
-      customInput.hidden = true;
-      row.append(customInput);
-    }
-    const descriptions = document.createElement("div");
-    descriptions.className = "issue-description-list";
-    row.append(descriptions);
-    list.append(row);
-  });
-
-  card.append(summary, list);
-  return card;
+  numberNotApplicable.closest("label").hidden = !canBeNa;
+  locationDetails.closest("label").hidden = !needsLocation;
 }
 
 function renderIssueCatalog() {
-  sortCategoriesDescending(issueCatalog).forEach(([issue, subcategories]) => {
-    if (!issueCatalogEl.querySelector(`.issue-card[data-issue="${cssEscape(issue)}"]`)) {
-      issueCatalogEl.append(createIssueCard(issue, subcategories));
-    }
-  });
-
+  issueCatalogEl.innerHTML = sortCategoriesDescending(issueCatalog).map(([issue, subcategories]) => `<details class="issue-card" data-issue="${escapeHtml(issue)}"><summary class="issue-toggle"><span class="issue-name">${escapeHtml(issue)}</span><span class="issue-summary">Tap to expand</span></summary><div class="subcategory-list">${subcategories.map((subcategory) => `<div class="subcategory-row" data-subcategory="${escapeHtml(subcategory)}"><label class="subcategory-check"><input type="checkbox" /><span>${escapeHtml(subcategory)}</span></label>${subcategory === "Other" ? '<input class="custom-subcategory-input" type="text" placeholder="Custom sub-category" hidden />' : ""}<div class="issue-description-list"></div></div>`).join("")}</div></details>`).join("");
   const cards = [...issueCatalogEl.querySelectorAll(".issue-card[data-issue]")];
   cards.sort((cardA, cardB) => cardB.dataset.issue.localeCompare(cardA.dataset.issue));
   cards.forEach((card) => issueCatalogEl.append(card));
@@ -296,9 +241,26 @@ function renderIssueCatalog() {
 
       if (row.dataset.bound === "true") return;
       row.dataset.bound = "true";
-      checkbox.addEventListener("change", (event) => {
-        event.stopPropagation();
-        handleIssueSelectionChange(row, checkbox);
+      checkbox.addEventListener("change", () => {
+        if (!state.draft.issues[issue]) state.draft.issues[issue] = {};
+        renderIssueDescriptionBoxes(row, issue, subcategory, checkbox.checked);
+        if (customSubcategoryInput) customSubcategoryInput.hidden = !checkbox.checked;
+        if (checkbox.checked) {
+          if (!Array.isArray(state.draft.issues[issue][subcategory])) state.draft.issues[issue][subcategory] = [""];
+          if (customSubcategoryInput) {
+            if (!state.draft.customSubcategories[issue]) state.draft.customSubcategories[issue] = {};
+            state.draft.customSubcategories[issue][subcategory] = customSubcategoryInput.value.trim();
+          }
+        } else {
+          delete state.draft.issues[issue][subcategory];
+
+          if (customSubcategoryInput) {
+            delete state.draft.customSubcategories?.[issue]?.[subcategory];
+            customSubcategoryInput.value = "";
+          }
+        }
+        updateIssueSummary(issueNode, issue);
+        saveDraft();
       });
 
       customSubcategoryInput?.addEventListener("input", () => {
@@ -344,85 +306,6 @@ function renderIssueDescriptionBoxes(row, issue, subcategory, checked) {
   add.type = "button"; add.className = "ghost-button small-button"; add.textContent = `Add another ${resolveIssueSubcategory(state.draft, issue, subcategory)} issue`;
   add.addEventListener("click", () => { state.draft.issues[issue][subcategory].push(""); saveDraft(); renderIssueCatalog(); });
   list.append(add);
-}
-
-
-function handleIssueSelectionChange(row, checkbox) {
-  const issueNode = row.closest(".issue-card[data-issue]");
-  if (!issueNode) return;
-  const issue = issueNode.dataset.issue;
-  const subcategory = row.dataset.subcategory;
-  const customSubcategoryInput = row.querySelector(".custom-subcategory-input");
-  if (!state.draft.issues[issue]) state.draft.issues[issue] = {};
-  if (checkbox.checked) {
-    if (!Array.isArray(state.draft.issues[issue][subcategory])) state.draft.issues[issue][subcategory] = [""];
-    if (customSubcategoryInput) {
-      if (!state.draft.customSubcategories[issue]) state.draft.customSubcategories[issue] = {};
-      state.draft.customSubcategories[issue][subcategory] = customSubcategoryInput.value.trim();
-      customSubcategoryInput.hidden = false;
-    }
-  } else {
-    delete state.draft.issues[issue][subcategory];
-    if (customSubcategoryInput) {
-      delete state.draft.customSubcategories?.[issue]?.[subcategory];
-      customSubcategoryInput.value = "";
-      customSubcategoryInput.hidden = true;
-    }
-  }
-  renderIssueDescriptionBoxes(row, issue, subcategory, checkbox.checked);
-  updateIssueSummary(issueNode, issue);
-  saveDraft();
-}
-
-function handleIssueCatalogChange(event) {
-  const checkbox = event.target.closest?.('.subcategory-check input[type="checkbox"]');
-  if (!checkbox) return;
-  const row = checkbox.closest(".subcategory-row[data-subcategory]");
-  if (!row) return;
-  handleIssueSelectionChange(row, checkbox);
-}
-
-
-function syncIssueCatalogSelections() {
-  const nextIssues = {};
-  const nextCustomSubcategories = {};
-  issueCatalogEl.querySelectorAll(".issue-card[data-issue]").forEach((issueNode) => {
-    const issue = issueNode.dataset.issue;
-    issueNode.querySelectorAll(".subcategory-row[data-subcategory]").forEach((row) => {
-      const subcategory = row.dataset.subcategory;
-      const checkbox = row.querySelector('.subcategory-check input[type="checkbox"]');
-      const customSubcategoryInput = row.querySelector(".custom-subcategory-input");
-      if (!checkbox?.checked) {
-        renderIssueDescriptionBoxes(row, issue, subcategory, false);
-        if (customSubcategoryInput) customSubcategoryInput.hidden = true;
-        return;
-      }
-      if (!nextIssues[issue]) nextIssues[issue] = {};
-      const existingValues = state.draft.issues?.[issue]?.[subcategory];
-      nextIssues[issue][subcategory] = Array.isArray(existingValues) ? existingValues : [existingValues || ""];
-      if (customSubcategoryInput) {
-        if (!nextCustomSubcategories[issue]) nextCustomSubcategories[issue] = {};
-        nextCustomSubcategories[issue][subcategory] = customSubcategoryInput.value.trim();
-        customSubcategoryInput.hidden = false;
-      }
-      state.draft.issues = { ...state.draft.issues, ...nextIssues };
-      state.draft.customSubcategories = { ...state.draft.customSubcategories, ...nextCustomSubcategories };
-      renderIssueDescriptionBoxes(row, issue, subcategory, true);
-    });
-    updateIssueSummary(issueNode, issue);
-  });
-  state.draft.issues = nextIssues;
-  state.draft.customSubcategories = nextCustomSubcategories;
-  saveDraft();
-}
-
-function handleIssueCatalogClick(event) {
-  const checkbox = event.target.closest?.('.subcategory-check input[type="checkbox"]');
-  if (!checkbox) return;
-  setTimeout(() => {
-    const row = checkbox.closest(".subcategory-row[data-subcategory]");
-    if (row) handleIssueSelectionChange(row, checkbox);
-  }, 0);
 }
 
 function updateIssueSummary(issueNode, issue) {
@@ -1288,9 +1171,6 @@ async function downloadAllContents() {
 function escapeHtml(value) {
   return String(value).replace(/[&<>"]/g, (char) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[char]);
 }
-
-issueCatalogEl.addEventListener("change", handleIssueCatalogChange);
-issueCatalogEl.addEventListener("click", handleIssueCatalogClick);
 
 communitySelect.addEventListener("change", () => { state.draft.community = communitySelect.value; state.draft.building = (communities[communitySelect.value] || buildings)[0]; renderBuildings(); saveDraft(); });
 buildingSelect.addEventListener("change", saveDraft);
