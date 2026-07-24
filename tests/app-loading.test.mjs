@@ -10,77 +10,79 @@ const [app, index, serviceWorker] = await Promise.all([
 
 test("the browser app has no external module dependency before rendering", () => {
   assert.doesNotMatch(app, /^\s*import\s/m);
-  assert.match(index, /<script src="app\.js" defer><\/script>/);
+  assert.match(index, /<script src="app\.js\?v=20260724-issue-selection" defer><\/script>/);
 });
 
-test("buildings are present in HTML before JavaScript runs", () => {
-  const buildingSelect = index.match(/<select id="buildingSelect"[\s\S]*?<\/select>/)?.[0] || "";
-  const buildingOptions = [...buildingSelect.matchAll(/<option value="([^"]+)">/g)].map((match) => match[1]);
-  assert.deepEqual(buildingOptions, [
-    "Baker A", "Baker B", "Colby A", "Colby B", "Colby C", "DSP", "Ellingson", "Fish A", "Fish B",
-    "Fish C", "Gleason", "Gibson A", "Gibson B", "Peterson", "Res Hall A", "Res Hall B", "Res Hall C",
-    "Sol Huemann",
-  ]);
+test("community and building controls are present", () => {
+  assert.match(index, /id="communitySelect"/);
+  assert.match(index, /id="buildingSelect"/);
+  assert.match(app, /const communities = \{/);
+  assert.match(app, /"Fish\/Baker": \["Fish A", "Fish B", "Fish C", "Baker A", "Baker B"\]/);
 });
 
-test("native issue categories are present and descending before JavaScript runs", () => {
+test("native issue categories are present in static HTML and app catalog", () => {
   const categories = [...index.matchAll(/<details class="issue-card" data-issue="([^"]+)">/g)].map((match) => match[1]);
-  assert.deepEqual(categories, ["Windows", "Paint/Wall", "HVAC", "Furniture", "Fridges", "Carpet/Floor"]);
-  assert.equal((index.match(/class="subcategory-row"/g) || []).length, 25);
+  assert.deepEqual(categories, ["Windows", "Paint/Wall", "HVAC", "Furniture", "Common Work Orders", "Carpet/Floor", "Bathroom"]);
+  assert.ok((index.match(/class="subcategory-row"/g) || []).length >= 34);
+  assert.match(app, /Windows: \["Window Limiter", "Window Push Bar", "Window Screen", "Window Blinds", "Other"\]/);
+  assert.match(app, /Bathroom: \["Mold\/Mildew", "Shower Curtain Needs Replaced", "Needs Cleaning", "Shower Leaking", "Sink Leaking", "Toilet Clogged", "Other"\]/);
+  assert.match(app, /"Common Work Orders": \["Lights Out", "Vacuuming\/Mopping Needed", "Door Not Securing", "Malfunctioning Strobe", "Missing Signage", "Other"\]/);
 });
 
 test("the self-contained app still includes data and enhancement helpers", () => {
-  assert.match(app, /const buildings = \[/);
+  assert.match(app, /const buildings = \[\.\.\.new Set/);
   assert.match(app, /const buildingNumbers = \{/);
   assert.match(app, /Ellingson: "50A"/);
   assert.match(app, /DSP: "43"/);
   assert.match(app, /function buildingLabel/);
   assert.match(app, /function buildingFilenameLabel/);
-  assert.match(app, /const issueCatalog = \{/);
+  assert.match(app, /const issueCatalog = globalThis\.RC_ISSUE_CATALOG \|\| \{/);
   assert.match(app, /function sortCategoriesDescending/);
   assert.match(app, /function collectDraftIssues/);
   assert.match(app, /querySelectorAll\("\.issue-card\[data-issue\]"\)/);
 });
 
 
-test("room type dropdown and export controls are present", () => {
+test("inspected space dropdown and export controls are present", () => {
   assert.match(index, /id="roomNumber"[^>]+inputmode="numeric"[^>]+pattern="\[0-9\]\*"/);
   assert.match(index, /id="roomType"/);
-  assert.match(index, /<option value="Dorm" selected>Dorm<\/option>/);
-  assert.match(index, /<option value="Lounge">Lounge<\/option>/);
+  assert.match(index, /<option value="Lounge" selected>Lounge<\/option>/);
   assert.match(index, /<option value="Bathroom">Bathroom<\/option>/);
   assert.match(index, /<option value="Elevator">Elevator<\/option>/);
   assert.match(index, /<option value="Hallway">Hallway<\/option>/);
   assert.match(index, /<option value="Stairwell">Stairwell<\/option>/);
-  assert.match(app, /roomType: "Dorm"/);
-  assert.match(app, /roomType\.addEventListener\("change", saveDraft\)/);
+  assert.match(index, /<option value="Exterior">Exterior<\/option>/);
+  assert.match(index, /id="numberNotApplicable"/);
+  assert.match(index, /Check this for no room number\./);
+  assert.match(index, /Examples: 1069, 2401, 8008, 11011/);
+  assert.match(index, /id="locationDetails"/);
+  assert.match(app, /roomType: "Lounge"/);
+  assert.match(app, /numberNotApplicable\.addEventListener/);
+  assert.match(app, /function handleIssueSelectionChange/);
+  assert.match(app, /issueCatalogEl\.addEventListener\("change", handleIssueCatalogChange\)/);
   assert.match(app, /"Carpet\/Floor": \["Holes & Tears", "Stains", "Other"\]/);
-  assert.match(app, /Fridges: \["Needs Cleaning", "Moldy", "Malfunctioning", "Other"\]/);
-  assert.match(app, /Furniture: \["Chair", "Desk", "Drawer", "Dresser", "Mattress", "Mattress Frame", "Other"\]/);
+  assert.match(app, /Furniture: \["Abandoned Furniture Present", "Lounge Furniture Missing", "Needs Repair", "Overly-Worn\/Damaged", "Other"\]/);
   assert.match(app, /HVAC: \["Displaced A\/C Panel", "Needs Servicing", "Other"\]/);
-  assert.match(app, /"Paint\/Wall": \["Crack", "Peeling", "Patch Needed", "Other"\]/);
-  assert.match(app, /Windows: \["Window Limiter", "Window Push Bar", "Window Screen", "Other"\]/);
+  assert.match(app, /"Paint\/Wall": \["Crack", "Peeling", "Patch Needed", "Mold\/Mildew", "Cleaning Needed", "Other"\]/);
   assert.match(app, /"Building Name", "Room Number", "Room Type", "Categories and Subcategories", "Additional Notes", "Partner Summary"/);
-  assert.match(index, /id="exportText"/);
-  assert.match(index, /RIT CRL Summer Room Checks/);
-  assert.match(index, /Room Check Documentation/);
-  assert.match(index, /id="copyTextButton"/);
-  assert.match(index, /id="downloadTextButton"/);
+  assert.match(index, /RIT RC Community Walkthroughs/);
+  assert.match(index, /Community Walkthrough Form/);
+  assert.match(index, /id="downloadReportButton"/);
+  assert.match(index, /id="downloadAllContentsButton"/);
   assert.match(index, /id="downloadCsvButton"/);
   assert.match(index, /id="savedPhotos"/);
   assert.match(index, /id="downloadAllPhotosButton"/);
-  assert.match(index, /Download CSV file/);
-  assert.match(index, /Download all photos as ZIP/);
+  assert.match(index, /Download CSV File/);
+  assert.match(index, /Download All Photos as ZIP/);
+  assert.match(index, /window\.RC_ISSUE_CATALOG/);
   assert.match(app, /async function labelPhoto/);
-  assert.match(app, /function buildExportText/);
-  assert.match(app, /navigator\.clipboard\.writeText/);
   assert.match(app, /function buildCsvText/);
   assert.match(app, /function formatPartnerSummary/);
   assert.match(app, /buildingLabel\(entry\.building\)/);
   assert.match(app, /function uniqueDownloadId/);
-  assert.match(app, /labelPhoto\(photo, buildingLabel\(building\), room, index, buildingFilenameLabel\(building\)\)/);
-  assert.match(app, /room-check-photos-\$\{uniqueDownloadId\(\)\}\.zip/);
-  assert.match(index, /class="custom-subcategory-input"/);
+  assert.match(app, /function reportHtml/);
+  assert.match(app, /function downloadAllContents/);
+  assert.match(index, /Other Issues Not Listed Above/);
   assert.match(app, /customSubcategories/);
   assert.match(app, /function createZip/);
 });
