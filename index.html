@@ -184,6 +184,52 @@
       </div>
     </template>
 
-    <script src="app.js" defer></script>
+
+    <script>
+      window.RC_ISSUE_CATALOG = {
+        "Windows": ["Window Limiter", "Window Push Bar", "Window Screen", "Window Blinds", "Other"],
+        "Paint/Wall": ["Crack", "Peeling", "Patch Needed", "Mold/Mildew", "Cleaning Needed", "Other"],
+        "HVAC": ["Displaced A/C Panel", "Needs Servicing", "Other"],
+        "Furniture": ["Abandoned Furniture Present", "Lounge Furniture Missing", "Needs Repair", "Overly-Worn/Damaged", "Other"],
+        "Common Work Orders": ["Lights Out", "Vacuuming/Mopping Needed", "Door Not Securing", "Malfunctioning Strobe", "Missing Signage", "Other"],
+        "Carpet/Floor": ["Holes & Tears", "Stains", "Other"],
+        "Bathroom": ["Mold/Mildew", "Shower Curtain Needs Replaced", "Needs Cleaning", "Shower Leaking", "Sink Leaking", "Toilet Clogged", "Other"]
+      };
+      (function () {
+        var catalogElement = document.getElementById("issueCatalog");
+        if (!catalogElement || catalogElement.children.length) return;
+        Object.keys(window.RC_ISSUE_CATALOG).forEach(function (category) {
+          var details = document.createElement("details");
+          details.className = "issue-card";
+          details.setAttribute("data-issue", category);
+          var summary = document.createElement("summary");
+          summary.className = "issue-toggle";
+          summary.innerHTML = '<span class="issue-name"></span><span class="issue-summary">Tap to expand</span>';
+          summary.querySelector(".issue-name").textContent = category;
+          var list = document.createElement("div");
+          list.className = "subcategory-list";
+          window.RC_ISSUE_CATALOG[category].forEach(function (subcategory) {
+            var row = document.createElement("div");
+            row.className = "subcategory-row";
+            row.setAttribute("data-subcategory", subcategory);
+            row.innerHTML = '<label class="subcategory-check"><input type="checkbox" /><span></span></label><div class="issue-description-list"></div>';
+            row.querySelector("span").textContent = subcategory;
+            if (subcategory === "Other") {
+              var custom = document.createElement("input");
+              custom.className = "custom-subcategory-input";
+              custom.type = "text";
+              custom.placeholder = "Custom sub-category";
+              custom.hidden = true;
+              row.insertBefore(custom, row.querySelector(".issue-description-list"));
+            }
+            list.appendChild(row);
+          });
+          details.appendChild(summary);
+          details.appendChild(list);
+          catalogElement.appendChild(details);
+        });
+      }());
+    </script>
+    <script src="app.js?v=20260724-issues" defer></script>
   </body>
 </html>

@@ -10,7 +10,7 @@ const [app, index, serviceWorker] = await Promise.all([
 
 test("the browser app has no external module dependency before rendering", () => {
   assert.doesNotMatch(app, /^\s*import\s/m);
-  assert.match(index, /<script src="app\.js" defer><\/script>/);
+  assert.match(index, /<script src="app\.js\?v=20260724-issues" defer><\/script>/);
 });
 
 test("community and building controls are present", () => {
@@ -33,7 +33,7 @@ test("the self-contained app still includes data and enhancement helpers", () =>
   assert.match(app, /DSP: "43"/);
   assert.match(app, /function buildingLabel/);
   assert.match(app, /function buildingFilenameLabel/);
-  assert.match(app, /const issueCatalog = \{/);
+  assert.match(app, /const issueCatalog = globalThis\.RC_ISSUE_CATALOG \|\| \{/);
   assert.match(app, /function sortCategoriesDescending/);
   assert.match(app, /function collectDraftIssues/);
   assert.match(app, /querySelectorAll\("\.issue-card\[data-issue\]"\)/);
